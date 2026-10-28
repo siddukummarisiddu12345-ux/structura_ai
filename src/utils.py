@@ -24,15 +24,16 @@ def truncate(text: str, max_chars: int = 10000, suffix: str = "\n[... truncated 
     return text[:max_chars - len(suffix)] + suffix
 
 
+def normalize_payload(payload: Any) -> Any:
+    """Normalize input or output payload data structures."""
+    return payload
+
+
 def parse_decimal_safe(value: Any) -> Decimal | None:
     """Safely parse numbers into Decimal objects if possible."""
     if value is None:
         return None
     try:
-        return Decimal(str(value).strip().replace(",", ""))
-    except (InvalidOperation, ValueError):
-        return None
-
         return Decimal(str(value).strip().replace(",", ""))
     except (InvalidOperation, ValueError):
         return None
