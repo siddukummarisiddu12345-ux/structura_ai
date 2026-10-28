@@ -299,3 +299,14 @@ def get_template(key: str) -> Template:
         return TEMPLATES[key]
     except KeyError:
         raise KeyError(f"Unknown template '{key}'. Choose one of: {', '.join(TEMPLATES)}") from None
+# --------------------------------------------------------------------------- #
+# Utility Helpers
+# --------------------------------------------------------------------------- #
+
+def truncate(text: str, max_chars: int = 10000, suffix: str = "\n[... truncated due to length ...]") -> str:
+    """Truncate text to a maximum number of characters."""
+    if not isinstance(text, str):
+        return str(text)
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars - len(suffix)] + suffix
