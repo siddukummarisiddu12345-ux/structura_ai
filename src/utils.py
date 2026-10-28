@@ -4,6 +4,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any
 import json
+import re
 
 
 class InputValidationError(ValueError):
@@ -34,13 +35,22 @@ def normalize_payload(payload: Any) -> Any:
     return payload
 
 
+def redact_secrets(text: str) -> str:
+    """Redact sensitive information like API keys or tokens from text."""
+    if not isinstance(text, str):
+        return str(text)
+    # Basic redaction patterns for common API keys/secrets
+    text = re.sub(r'sk-[a-zA-Z0-9]{20,}', 'sk-[REDACTED]', text)
+    text = re.sub(r'Bearer\s+[a-zA-Z0-9_\-\.]{20,}', 'Bearer [REDACTED]', text)
+    return text
+
+
 def parse_json_object(text: str) -> dict | list:
     """Safely parse a JSON string, raising JSONParseError if it fails."""
     if not isinstance(text, str):
         raise JSONParseError("Input must be a string for JSON parsing.")
     
     cleaned_text = text.strip()
-    # Handle markdown code blocks if the LLM wrapped them
     if cleaned_text.startswith("```json"):
         cleaned_text = cleaned_text[7:]
     elif cleaned_text.startswith("```"):
