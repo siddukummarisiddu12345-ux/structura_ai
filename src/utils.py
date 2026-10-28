@@ -26,6 +26,10 @@ def truncate(text: str, max_chars: int = 10000, suffix: str = "\n[... truncated 
 
 def normalize_payload(payload: Any) -> Any:
     """Normalize input or output payload data structures."""
+    if isinstance(payload, dict):
+        return {k: normalize_payload(v) for k, v in payload.items()}
+    if isinstance(payload, list):
+        return [normalize_payload(item) for item in payload]
     return payload
 
 
