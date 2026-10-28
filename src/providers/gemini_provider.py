@@ -1,71 +1,53 @@
-"""Google Gemini provider (google-genai SDK). All Gemini-specific code lives here."""
+"""Gemini LLM provider implementation."""
+
 from __future__ import annotations
 
-from .base import (
-    LLMProvider,
-    ProviderAuthError,
-    ProviderError,
-    ProviderRateLimitError,
-    ProviderUnavailableError,
-)
+import os
+from google import genai
+from google.genai import errors
+from src.providers.base import BaseProvider, ProviderError, ProviderUnavailableError
 
-REQUEST_TIMEOUT_MS = 60_000
+class GeminiProvider(BaseProvider):
+    """Google Gemini LLM provider using the official google-genai SDK."""
 
-
-class GeminiProvider(LLMProvider):
-    """Calls Gemini models and asks for a JSON response."""
-
-    name = "gemini"
-
-    def __init__(self, api_key: str | None) -> None:
-        if not api_key:
-            raise ProviderAuthError("No Gemini API key is configured (set GEMINI_API_KEY).")
-        try:
-            from google import genai
-            from google.genai import types
-        except ImportError as exc:
-            raise ProviderError(
-                "The 'google-genai' package is not installed. Run: pip install -r requirements.txt"
-            ) from exc
-        self._types = types
-        self._client = genai.Client(
-            api_key=api_key, http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS)
-        )
+    def __init__(self, api_key: str | None = None) -> None:
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        if not self.api_key:
+            raise ProviderError("auth_error", "Gemini API key is missing.")
+        
+        # Initialize the official GenAI client
+        self.client = genai.Client(api_key=self.api_key)
 
     def generate(self, system_prompt: str, user_prompt: str, model: str) -> str:
-        from google.genai import errors
+        """Generate text content using Gemini."""
+        # Ensure model names map cleanly if needed
+        model_name = model.strip()
+        if not model_name:
+            model_name = "gemini-2.5-flash"
 
-        config = self._types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.0,
-            response_mime_type="application/json",
-        )
         try:
-            response = self._client.models.generate_content(
-                model=model, contents=user_prompt, config=config
+            # Combine system prompt and user prompt for the API call
+            full_prompt = f"System Instructions:\n{system_prompt}\n\nUser Document:\n{user_prompt}"
+            
+            response = self.client.models.generate_content(
+                model=model_name,
+                contents=full_prompt
             )
-        except errors.APIError as exc:
+            
+            if not response or not response.text:
+                raise ProviderError("empty_response", "Received empty response from Gemini.")
+            return response.text
+
+        excpt errors.APIError as exc:
             raise _translate_api_error(exc) from None
-        except Exception as exc:  # network problems, timeouts, SDK bugs
-            raise ProviderUnavailableError(
-                f"Could not reach Gemini ({type(exc).__name__}). Check your connection and try again."
-            ) from None
-        text = getattr(response, "text", None)
-        if not text:
-            raise ProviderError("Gemini returned no text (the response may have been blocked).")
-        return text
+        except Exception as exc:
+            raise ProviderUnavailableError(f"Could not reach Gemini ({type(exc).__name__}).") from exc
 
-
-def _translate_api_error(exc: Exception) -> ProviderError:
-    """Map a Gemini APIError to our error types without echoing raw messages."""
-    code = getattr(exc, "code", None)
-    detail = str(exc).lower()
-    if code in (401, 403) or (code == 400 and "api key" in detail):
-        return ProviderAuthError("Gemini rejected the API key. Check GEMINI_API_KEY.")
-    if code == 429:
-        return ProviderRateLimitError("Gemini rate limit or quota reached. Wait and try again.")
-    if isinstance(code, int) and code >= 500:
-        return ProviderUnavailableError(f"Gemini service error (HTTP {code}). Try again later.")
-    if code == 404:
-        return ProviderError("Gemini could not find that model (HTTP 404). Check the model name.")
-    return ProviderError(f"Gemini request failed (HTTP {code}).")
+def _translate_api_error(exc: errors.APIError) -> ProviderError:
+    code = getattr(exc, "code", 400)
+    message = str(exc)
+    if code == 401 or "API key not valid" in message:
+        return ProviderError("auth_error", "Invalid Gemini API key.")
+    if code == 429 or "Resource has been exhausted" in message:
+        return ProviderError("rate_limit", "Gemini rate limit exceeded.")
+    return ProviderError("provider_error", f"Gemini API error: {message}")
