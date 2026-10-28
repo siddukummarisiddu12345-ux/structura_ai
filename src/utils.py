@@ -26,6 +26,18 @@ def truncate(text: str, max_chars: int = 10000, suffix: str = "\n[... truncated 
     return text[:max_chars - len(suffix)] + suffix
 
 
+def validate_input_text(text: Any, max_chars: int = 50000) -> str:
+    """Validate that input text is a non-empty string within limits."""
+    if not isinstance(text, str):
+        raise InputValidationError("Input text must be a string.")
+    cleaned = text.strip()
+    if not cleaned:
+        raise InputValidationError("Input text cannot be empty.")
+    if len(cleaned) > max_chars:
+        raise InputValidationError(f"Input text exceeds maximum length of {max_chars} characters.")
+    return cleaned
+
+
 def normalize_payload(payload: Any) -> Any:
     """Normalize input or output payload data structures."""
     if isinstance(payload, dict):
@@ -39,7 +51,6 @@ def redact_secrets(text: str) -> str:
     """Redact sensitive information like API keys or tokens from text."""
     if not isinstance(text, str):
         return str(text)
-    # Basic redaction patterns for common API keys/secrets
     text = re.sub(r'sk-[a-zA-Z0-9]{20,}', 'sk-[REDACTED]', text)
     text = re.sub(r'Bearer\s+[a-zA-Z0-9_\-\.]{20,}', 'Bearer [REDACTED]', text)
     return text
