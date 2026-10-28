@@ -1,1 +1,1 @@
-Structura AI source package.
+"""Structura AI source package."""
