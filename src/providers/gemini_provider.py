@@ -20,13 +20,11 @@ class GeminiProvider(BaseProvider):
 
     def generate(self, system_prompt: str, user_prompt: str, model: str) -> str:
         """Generate text content using Gemini."""
-        # Ensure model names map cleanly if needed
         model_name = model.strip()
         if not model_name:
             model_name = "gemini-2.5-flash"
 
         try:
-            # Combine system prompt and user prompt for the API call
             full_prompt = f"System Instructions:\n{system_prompt}\n\nUser Document:\n{user_prompt}"
             
             response = self.client.models.generate_content(
@@ -38,7 +36,7 @@ class GeminiProvider(BaseProvider):
                 raise ProviderError("empty_response", "Received empty response from Gemini.")
             return response.text
 
-        excpt errors.APIError as exc:
+        except errors.APIError as exc:
             raise _translate_api_error(exc) from None
         except Exception as exc:
             raise ProviderUnavailableError(f"Could not reach Gemini ({type(exc).__name__}).") from exc
