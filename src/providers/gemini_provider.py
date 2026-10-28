@@ -1,51 +1,27 @@
-"""Gemini LLM provider implementation."""
+"""Base provider abstract class and custom provider exceptions."""
 
 from __future__ import annotations
+from abc import ABC, abstractmethod
 
-import os
-from google import genai
-from google.genai import errors
-from src.providers.base import BaseProvider, ProviderError, ProviderUnavailableError
 
-class GeminiProvider(BaseProvider):
-    """Google Gemini LLM provider using the official google-genai SDK."""
+class ProviderError(Exception):
+    """Base exception for provider errors."""
+    def __init__(self, kind: str, message: str) -> None:
+        super().__init__(message)
+        self.kind = kind
+        self.message = message
 
-    def __init__(self, api_key: str | None = None) -> None:
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        if not self.api_key:
-            raise ProviderError("auth_error", "Gemini API key is missing.")
-        
-        # Initialize the official GenAI client
-        self.client = genai.Client(api_key=self.api_key)
 
+class ProviderUnavailableError(ProviderError):
+    """Raised when the LLM provider cannot be reached."""
+    def __init__(self, message: str) -> None:
+        super().__init__("provider_unavailable", message)
+
+
+class BaseProvider(ABC):
+    """Abstract base class for all LLM providers."""
+
+    @abstractmethod
     def generate(self, system_prompt: str, user_prompt: str, model: str) -> str:
-        """Generate text content using Gemini."""
-        model_name = model.strip()
-        if not model_name:
-            model_name = "gemini-2.5-flash"
-
-        try:
-            full_prompt = f"System Instructions:\n{system_prompt}\n\nUser Document:\n{user_prompt}"
-            
-            response = self.client.models.generate_content(
-                model=model_name,
-                contents=full_prompt
-            )
-            
-            if not response or not response.text:
-                raise ProviderError("empty_response", "Received empty response from Gemini.")
-            return response.text
-
-        except errors.APIError as exc:
-            raise _translate_api_error(exc) from None
-        except Exception as exc:
-            raise ProviderUnavailableError(f"Could not reach Gemini ({type(exc).__name__}).") from exc
-
-def _translate_api_error(exc: errors.APIError) -> ProviderError:
-    code = getattr(exc, "code", 400)
-    message = str(exc)
-    if code == 401 or "API key not valid" in message:
-        return ProviderError("auth_error", "Invalid Gemini API key.")
-    if code == 429 or "Resource has been exhausted" in message:
-        return ProviderError("rate_limit", "Gemini rate limit exceeded.")
-    return ProviderError("provider_error", f"Gemini API error: {message}")
+        """Generate a response given system and user prompts."""
+        pass
