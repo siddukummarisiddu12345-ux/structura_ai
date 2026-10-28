@@ -3,6 +3,7 @@
 from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any
+import json
 
 
 class InputValidationError(ValueError):
@@ -31,6 +32,27 @@ def normalize_payload(payload: Any) -> Any:
     if isinstance(payload, list):
         return [normalize_payload(item) for item in payload]
     return payload
+
+
+def parse_json_object(text: str) -> dict | list:
+    """Safely parse a JSON string, raising JSONParseError if it fails."""
+    if not isinstance(text, str):
+        raise JSONParseError("Input must be a string for JSON parsing.")
+    
+    cleaned_text = text.strip()
+    # Handle markdown code blocks if the LLM wrapped them
+    if cleaned_text.startswith("```json"):
+        cleaned_text = cleaned_text[7:]
+    elif cleaned_text.startswith("```"):
+        cleaned_text = cleaned_text[3:]
+    if cleaned_text.endswith("```"):
+        cleaned_text = cleaned_text[:-3]
+    cleaned_text = cleaned_text.strip()
+
+    try:
+        return json.loads(cleaned_text)
+    except json.JSONDecodeError as exc:
+        raise JSONParseError(f"Failed to parse JSON: {exc}") from exc
 
 
 def parse_decimal_safe(value: Any) -> Decimal | None:
