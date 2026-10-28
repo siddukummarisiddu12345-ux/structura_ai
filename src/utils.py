@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Iterable
 import json
 import re
 
@@ -47,12 +47,22 @@ def normalize_payload(payload: Any) -> Any:
     return payload
 
 
-def redact_secrets(text: str) -> str:
-    """Redact sensitive information like API keys or tokens from text."""
+def redact_secrets(text: str, secrets: Iterable[str] | None = None) -> str:
+    """Redact sensitive information and API keys from text."""
     if not isinstance(text, str):
         return str(text)
+    
+    # Base pattern redactions
     text = re.sub(r'sk-[a-zA-Z0-9]{20,}', 'sk-[REDACTED]', text)
+    text = re.sub(r'AIza[0-9A-Za-z-_]{35}', 'AIza[REDACTED]', text)
     text = re.sub(r'Bearer\s+[a-zA-Z0-9_\-\.]{20,}', 'Bearer [REDACTED]', text)
+
+    # Redact dynamic secrets if provided
+    if secrets:
+        for secret in secrets:
+            if secret and len(str(secret).strip()) > 3:
+                text = text.replace(str(secret), "[REDACTED]")
+
     return text
 
 
