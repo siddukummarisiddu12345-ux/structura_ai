@@ -1,6 +1,11 @@
-"""Utility helper functions for the application."""
+"""Utility helper functions and custom exceptions for the application."""
 
 from __future__ import annotations
+
+
+class InputValidationError(ValueError):
+    """Raised when input text or parameters are invalid."""
+    pass
 
 
 def truncate(text: str, max_chars: int = 10000, suffix: str = "\n[... truncated due to length ...]") -> str:
