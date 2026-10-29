@@ -18,6 +18,12 @@ class ProviderUnavailableError(ProviderError):
         super().__init__("provider_unavailable", message)
 
 
+class ProviderAuthError(ProviderError):
+    """Raised when provider authentication fails."""
+    def __init__(self, message: str) -> None:
+        super().__init__("provider_auth_error", message)
+
+
 class BaseProvider(ABC):
     """Abstract base class for all LLM providers."""
 
@@ -25,3 +31,7 @@ class BaseProvider(ABC):
     def generate(self, system_prompt: str, user_prompt: str, model: str) -> str:
         """Generate a response given system and user prompts."""
         pass
+
+
+# 🔑 CRITICAL: Alias this so imports looking for LLMProvider won't crash
+LLMProvider = BaseProvider
