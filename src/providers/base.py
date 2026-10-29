@@ -24,6 +24,12 @@ class ProviderAuthError(ProviderError):
         super().__init__("provider_auth_error", message)
 
 
+class ProviderRateLimitError(ProviderError):
+    """Raised when the LLM provider rate limit is exceeded."""
+    def __init__(self, message: str) -> None:
+        super().__init__("provider_rate_limit", message)
+
+
 class BaseProvider(ABC):
     """Abstract base class for all LLM providers."""
 
@@ -33,5 +39,5 @@ class BaseProvider(ABC):
         pass
 
 
-# 🔑 CRITICAL: Alias this so imports looking for LLMProvider won't crash
+# Alias to support imports expecting LLMProvider
 LLMProvider = BaseProvider
