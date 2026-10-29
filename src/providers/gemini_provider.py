@@ -20,9 +20,9 @@ class GeminiProvider(BaseProvider):
 
     def generate(self, system_prompt: str, user_prompt: str, model: str) -> str:
         """Generate text content using Gemini."""
-        model_name = model.strip()
+        model_name = model.strip() if model else ""
         if not model_name:
-            model_name = "gemini-2.5-flash"
+            model_name = "gemini-3.8-flash"  # Updated to current active model
 
         try:
             full_prompt = f"System Instructions:\n{system_prompt}\n\nUser Document:\n{user_prompt}"
