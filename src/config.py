@@ -20,9 +20,7 @@ PROVIDER_ENV_VARS: dict[str, str] = {
 # provider name -> (environment variable for the model list, defaults)
 # Model names change over time; override them in .env if these are retired.
 PROVIDER_MODEL_SETTINGS: dict[str, tuple[str, tuple[str, ...]]] = {
-    ""gemini": (
-    "GEMINI_MODELS",
-    ("gemini-3.8-flash", "gemini-3.6-flash"),
+    "gemini": ("GEMINI_MODELS", ("gemini-3.8-flash", "gemini-3.6-flash"),
 ),,
     "openai": ("OPENAI_MODELS", ("gpt-4o-mini", "gpt-4.1-mini")),
 }
